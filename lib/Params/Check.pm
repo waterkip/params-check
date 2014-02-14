@@ -185,7 +185,7 @@ control whether the C<store>'d key will still be present in your
 result set. See the L<Global Variables> section below.
 
 =item allow
-
+\n
 A set of criteria used to validate a particular piece of data if it
 has to adhere to particular rules.
 
@@ -249,33 +249,60 @@ sub check {
     _clear_error();
 
     ### did we get the arguments we need? ###
-    if ( !$utmpl or !$href ) {
-      _store_error(loc('check() expects two arguments'));
-      return unless $WARNINGS_FATAL;
-      croak(__PACKAGE__->last_error);
+    if (ref $utmpl ne 'HASH' or ref $href ne 'HASH') {
+      croak(loc('check() expects two arguments'));
     }
 
-    ### sensible defaults ###
-    $verbose ||= $VERBOSE || 0;
+    my $options;
+    {
+        my $ref = ref $verbose;
+        if ($ref eq 'HASH') {
+            $options = $verbose;
+            # New way of thinking: fatal is the default; 
+            # catch me if you can
+            $options->{fatal} = 1;
+            foreach ('preserve_case', 'sanity_check_template') { 
+                if (!exists $options->{$_}) { 
+                    $options->{$_} = 1;
+                }
+            }
+                
+        }
+        elsif (!$ref) {
+            if (defined $verbose) { 
+                _warn_deprecated();
+            }
+            $options = {
+                no_duplicates         => $NO_DUPLICATES,
+                strip_leading_dashes  => $STRIP_LEADING_DASHES,
+                strict_type           => $STRICT_TYPE,
+                allow_unknown         => $ALLOW_UNKNOWN,
+                preserve_case         => $PRESERVE_CASE,
+                only_allow_defined    => $ONLY_ALLOW_DEFINED,
+                sanity_check_template => $SANITY_CHECK_TEMPLATE,
+                fatal                 => $WARNINGS_FATAL,
+                caller_depth          => $CALLER_DEPTH,
+                verbose               => $verbose || $VERBOSE || 0,
+            };
+        }
+        else {
+            croak(loc('check() invalid type for options or verbose'));
+        }
+    }
 
-    ### XXX what type of template is it? ###
-    ### { key => { } } ?
-    #if (ref $args eq 'HASH') {
-    #    1;
-    #}
 
     ### clean up the template ###
     my $args;
 
     ### don't even bother to loop, if there's nothing to clean up ###
-    if( $PRESERVE_CASE and !$STRIP_LEADING_DASHES ) {
+    if( $options->{preserve_case} and !$options->{strip_leading_dashes} ) {
         $args = $href;
     } else {
         ### keys are not aliased ###
         for my $key (keys %$href) {
             my $org = $key;
-            $key = lc $key unless $PRESERVE_CASE;
-            $key =~ s/^-// if $STRIP_LEADING_DASHES;
+            $key = lc $key if !$options->{preserve_case};
+            $key =~ s/^-// if $options->{strip_leading_dashes};
             $args->{$key} = $href->{$org};
         }
     }
@@ -297,7 +324,7 @@ sub check {
         if( $tmpl->{'required'} and not exists $args->{$key} ) {
             _store_error(
                 loc(q|Required option '%1' is not provided for %2 by %3|,
-                    $key, _who_was_it(), _who_was_it(1)), $verbose );
+                    $key, _who_was_it(), _who_was_it(1)), $options->{verbose} );
 
             ### mark the error ###
             $fail++;
@@ -308,22 +335,24 @@ sub check {
         $defs{$key} = $tmpl->{'default'}
                         if exists $tmpl->{'default'};
 
-        if( $SANITY_CHECK_TEMPLATE ) {
+        if( $options->{sanity_check_template} ) {
             ### last, check if they provided any weird template keys
             ### -- do this last so we don't always execute this code.
             ### just a small optimization.
             map {   _store_error(
                         loc(q|Template type '%1' not supported [at key '%2']|,
-                        $_, $key), 1, 0 );
+                        $_, $key), $options->{verbose}, 0 );
             } grep {
                 not $known_keys{$_}
             } keys %$tmpl;
 
             ### make sure you passed a ref, otherwise, complain about it!
-            if ( exists $tmpl->{'store'} ) {
-                _store_error( loc(
-                    q|Store variable for '%1' is not a reference!|, $key
-                ), 1, 0 ) unless ref $tmpl->{'store'};
+            if (exists $tmpl->{store}) {
+                if (!ref $tmpl->{store}) {
+                    _store_error(loc(q|Store variable for '%1' is not a reference!|, $key));
+                    $fail++;
+                    next;
+                }
             }
         }
 
@@ -331,7 +360,10 @@ sub check {
     }
 
     ### errors found ###
-    return if $fail;
+    if ($fail) {
+        return if !$options->{fatal};
+        croak(__PACKAGE__->last_error);
+    }
 
     ### flag to see if anything went wrong ###
     my $wrong;
@@ -346,14 +378,14 @@ sub check {
         unless( $utmpl->{$key} ) {
 
             ### but we'll allow it anyway ###
-            if( $ALLOW_UNKNOWN ) {
+            if( $options->{allow_unknown} ) {
                 $defs{$key} = $arg;
 
             ### warn about the error ###
             } else {
                 _store_error(
                     loc("Key '%1' is not a valid key for %2 provided by %3",
-                        $key, _who_was_it(), _who_was_it(1)), $verbose);
+                        $key, _who_was_it($options->{caller_depth}), _who_was_it(1)), $options->{verbose});
                 $warned ||= 1;
             }
             next;
@@ -365,28 +397,29 @@ sub check {
         ### check if you're even allowed to override this key ###
         if( $tmpl{'no_override'} ) {
             _store_error(
-                loc(q[You are not allowed to override key '%1'].
-                    q[for %2 from %3], $key, _who_was_it(), _who_was_it(1)),
-                $verbose
-            );
+                loc(
+                    q[You are not allowed to override key '%1' for %2 from %3],
+                    $key, _who_was_it($options->{caller_depth}), _who_was_it(1)
+                ),
+                $options->{verbose});
             $warned ||= 1;
             next;
         }
 
         ### check if you were supposed to provide defined() values ###
-        if( ($tmpl{'defined'} || $ONLY_ALLOW_DEFINED) and not defined $arg ) {
+        if( ($tmpl{'defined'} || $options->{only_allow_defined}) and not defined $arg ) {
             _store_error(loc(q|Key '%1' must be defined when passed|, $key),
-                $verbose );
+                $options->{verbose} );
             $wrong ||= 1;
             next;
         }
 
         ### check if they should be of a strict type, and if it is ###
-        if( ($tmpl{'strict_type'} || $STRICT_TYPE) and
+        if( ($tmpl{'strict_type'} || $options->{strict_type}) and
             (ref $arg ne ref $tmpl{'default'})
         ) {
             _store_error(loc(q|Key '%1' needs to be of type '%2'|,
-                        $key, ref $tmpl{'default'} || 'SCALAR'), $verbose );
+                        $key, ref $tmpl{'default'} || 'SCALAR'), $options->{verbose} );
             $wrong ||= 1;
             next;
         }
@@ -402,8 +435,8 @@ sub check {
             ### of objects, but we do want to see *roughly* what we passed
             _store_error(loc(q|Key '%1' (%2) is of invalid type for '%3' |.
                              q|provided by %4|,
-                            $key, "$arg", _who_was_it(),
-                            _who_was_it(1)), $verbose);
+                            $key, "$arg", _who_was_it($options->{caller_depth}),
+                            _who_was_it(1)), $options->{verbose});
             $wrong ||= 1;
             next;
         }
@@ -415,7 +448,7 @@ sub check {
 
     ### croak with the collected errors if there were errors and
     ### we have the fatal flag toggled.
-    croak(__PACKAGE__->last_error) if ($wrong || $warned) && $WARNINGS_FATAL;
+    croak(__PACKAGE__->last_error) if ($wrong || $warned) && $options->{fatal};
 
     ### done with our loop... if $wrong is set, something went wrong
     ### and the user is already informed, just return...
@@ -426,8 +459,8 @@ sub check {
     ### leaving the user with a few set variables
     for my $key (@want_store) {
         next unless exists $defs{$key};
-        my $ref = $utmpl->{$key}{'store'};
-        $$ref = $NO_DUPLICATES ? delete $defs{$key} : $defs{$key};
+        my $ref = $utmpl->{$key}{store};
+        $$ref = $options->{no_duplicates} ? delete $defs{$key} : $defs{$key};
     }
 
     return \%defs;
@@ -518,8 +551,16 @@ sub _safe_eq {
                 : defined($_[0]) eq defined($_[1]);
 }
 
+sub _warn_deprecated {
+    warn __PACKAGE__ . ": Deprecated use of global variables, future releases will use a different interface\n";
+}
+
 sub _who_was_it {
-    my $level = $_[0] || 0;
+    my $level = shift || 0;
+
+    if ($CALLER_DEPTH) { 
+        _warn_deprecated();
+    }
 
     return (caller(2 + $CALLER_DEPTH + $level))[3] || 'ANON'
 }
@@ -539,7 +580,7 @@ It is exported upon request.
 {   $_ERROR_STRING = '';
 
     sub _store_error {
-        my($err, $verbose, $offset) = @_[0..2];
+        my($err, $verbose, $offset) = @_;
         $verbose ||= 0;
         $offset  ||= 0;
         my $level   = 1 + $offset;
