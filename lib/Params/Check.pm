@@ -196,7 +196,13 @@ See the C<allow()> function for details.
 
 =head1 Functions
 
-=head2 check( \%tmpl, \%args, [$verbose] );
+=head2 check(@args);
+
+# Old style
+    check(\%tmpl,\%args, [$verbose] );
+
+# New style (not using global variables):
+    check(\%tmpl,\%args, [\%options]);
 
 This function is not exported by default, so you'll have to ask for it
 via:
@@ -227,7 +233,25 @@ You can enable this program wide by setting the package variable
 C<$Params::Check::VERBOSE> to a true value. For details, see the
 section on C<Global Variables> below.
 
+=item Options
+
+An hashref in which you put the options as described in the L<"Global Variables"> below.
+
+{
+    no_duplicates         => 0,
+    strip_leading_dashes  => 0,
+    strict_type           => 0,
+    allow_unknown         => 0,
+    preserve_case         => 1,
+    only_allow_defined    => 0,
+    sanity_check_template => 1,
+    caller_depth          => 1,
+    verbose               => 0,
+}
+
 =back
+
+=head3 Deprecated behaviour
 
 C<check> will return when it fails, or a hashref with lowercase
 keys of parsed arguments when it succeeds.
@@ -240,6 +264,14 @@ So a typical call to check would look like this:
 A lot of the behaviour of C<check()> can be altered by setting
 package variables. See the section on C<Global Variables> for details
 on this.
+
+=head3 New behaviour
+
+C<check> will die when it fails, or a hashref with keys of parsed arguments when it succeeds.
+
+So a typical call to check would look like this:
+
+    my $parsed = check( \%template, \%arguments, \%options);
 
 =cut
 
@@ -291,7 +323,6 @@ sub check {
             croak(loc('check() invalid type for options or verbose'));
         }
     }
-
 
     ### clean up the template ###
     my $args;
@@ -612,7 +643,7 @@ It is exported upon request.
 =head1 Global Variables
 
 The behaviour of Params::Check can be altered by changing the
-following global variables:
+following global variables. Please note that these are now deprecated, and used by C<options> in C<check>
 
 =head2 $Params::Check::VERBOSE
 
