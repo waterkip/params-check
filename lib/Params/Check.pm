@@ -1,5 +1,6 @@
 package Params::Check;
 
+use warnings;
 use strict;
 
 use Carp                        qw[carp croak];
@@ -261,6 +262,7 @@ sub check {
             # New way of thinking: fatal is the default;
             # catch me if you can
             $options->{fatal} = 1;
+            $options->{caller_depth} ||= 0;
             foreach ('preserve_case', 'sanity_check_template') {
                 if (!exists $options->{$_}) {
                     $options->{$_} = 1;
@@ -396,7 +398,7 @@ sub check {
         my %tmpl = %{$utmpl->{$key}};
 
         ### check if you're even allowed to override this key ###
-        if( $tmpl{'no_override'} ) {
+        if( $tmpl{no_override} ) {
             _store_error(
                 loc(
                     q[You are not allowed to override key '%1' for %2 from %3],
@@ -408,32 +410,34 @@ sub check {
         }
 
         ### check if you were supposed to provide defined() values ###
-        if( ($tmpl{'defined'} || $options->{only_allow_defined}) and not defined $arg ) {
+        if( ($tmpl{defined} || $options->{only_allow_defined}) and not defined $arg ) {
             _store_error(loc(q|Key '%1' must be defined when passed|, $key),
                 $options->{verbose} );
             $wrong ||= 1;
             next;
         }
 
-        ### check if they should be of a strict type, and if it is ###
-        if( ($tmpl{'strict_type'} || $options->{strict_type}) and
-            (ref $arg ne ref $tmpl{'default'})
-        ) {
-            _store_error(loc(q|Key '%1' needs to be of type '%2'|,
-                        $key, ref $tmpl{'default'} || 'SCALAR'), $options->{verbose} );
-            $wrong ||= 1;
-            next;
+        if ($tmpl{default} && ($tmpl{strict_type} || $options->{strict_type})) {
+            my $ref = ref $tmpl{default};
+            if (!defined $arg || ref $arg ne $ref) {
+                _store_error(
+                    loc(
+                        q|Key '%1' needs to be of type '%2'|,
+                        $key, $ref || 'SCALAR'
+                    ),
+                    $options->{verbose});
+                $wrong ||= 1;
+                next;
+            }
         }
 
         ### check if we have an allow handler, to validate against ###
         ### allow() will report its own errors ###
-        if( exists $tmpl{'allow'} and not do {
+        if(exists $tmpl{allow} and not do {
                 local $_ERROR_STRING;
-                allow( $arg, $tmpl{'allow'} )
+                allow($arg, $tmpl{allow})
             }
         ) {
-            ### stringify the value in the error report -- we don't want dumps
-            ### of objects, but we do want to see *roughly* what we passed
             _store_error(
                 loc(
                     q|Key '%1' (%2) is of invalid type for '%3' provided by %4|,
