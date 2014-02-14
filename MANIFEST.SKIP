@@ -1,6 +1,6 @@
 tags
-Makefile
-Makefile.old
+.git*
+Makefile.*
 MANIFEST.bak
 MYMETA.yml
-blib/*
+blib
