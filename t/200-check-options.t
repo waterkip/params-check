@@ -118,21 +118,68 @@ subtest 'store' => sub {
     );
 };
 
-#subtest 'strict_type' => sub {
-#    fail("Not tested");
-#};
-#
-#subtest 'allow_only_defined' => sub {
-#    fail("Not tested");
-#};
-#
-#subtest 'sanity_check_template' => sub {
-#    fail("Not tested");
-#};
-#
-#subtest 'caller_depth' => sub {
-#    fail("Not tested");
-#};
+subtest 'allow_only_defined' => sub {
+    my $try = { foo => 2 };
+    my $store;
+    my $tmpl = { foo => { default => 1 }};
+    my $args = check($tmpl, $try, {only_allow_defined => 1});
+    is_deeply($args, $try, "Correct return value");
+
+    throws_ok(
+        sub {
+            check($tmpl, { foo => undef }, {only_allow_defined => 1});
+        },
+        qr/Key 'foo' must be defined when passed/,
+    );
+};
+
+# TODO: This will be { foo => { isa => 'Int' }} in the future
+subtest 'strict_type' => sub {
+    my $try = { foo => 2 };
+    my $tmpl = { foo => { default => 1 }};
+    my $args = check($tmpl, $try, {strict_type => 1});
+    is_deeply($args, $try, "Correct return value");
+
+    $tmpl = {foo => {default => 1}};
+    throws_ok(
+        sub {
+            check($tmpl, {foo => []}, {strict_type => 1});
+        },
+        qr/Key 'foo' needs to be of type 'SCALAR'/,
+        "Not a strict type"
+    );
+};
+
+subtest 'caller_depth' => sub {
+    sub wrapper {check(@_)}
+    sub inner   {wrapper(@_)}
+    sub outer   {inner(@_)}
+
+    my $tmpl = {dummy => {required => 1}};
+
+    throws_ok(
+        sub {
+            outer($tmpl, {}, {caller_depth => 0});
+        },
+        qr/for main::wrapper by main::inner/,
+        "wrong caller without caller_depth"
+    );
+
+    throws_ok(
+        sub {
+            outer($tmpl, {}, {caller_depth => 1});
+        },
+        qr/for main::inner by main::outer/,
+        "right caller without caller_depth"
+    );
+};
+
+# This is on by default, checks store refs and unknown keys in the template
+subtest 'sanity_check_template' => sub {
+    ok("Always on");
+};
+
+
 
 Test::NoWarnings::had_no_warnings();
 done_testing;

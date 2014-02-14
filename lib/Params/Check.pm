@@ -317,49 +317,49 @@ sub check {
     for my $key (keys %$utmpl) {
         my $tmpl = $utmpl->{$key};
 
+        # If store is fail: we are not even going to look.
+        if (exists $tmpl->{store}) {
+            if (!ref $tmpl->{store}) {
+                _store_error(loc(q|Store variable for '%1' is not a reference!|, $key));
+                $fail++;
+                next;
+            }
+            push @want_store, $key;
+        }
+
         ### check if required keys are provided
         ### keys are now lower cased, unless preserve case was enabled
         ### at which point, the utmpl keys must match, but that's the users
         ### problem.
-        if( $tmpl->{'required'} and not exists $args->{$key} ) {
+        if ($tmpl->{required} and not exists $args->{$key}) {
             _store_error(
-                loc(q|Required option '%1' is not provided for %2 by %3|,
-                    $key, _who_was_it(), _who_was_it(1)), $options->{verbose} );
-
-            ### mark the error ###
+                loc(
+                    q|Required option '%1' is not provided for %2 by %3|,
+                    $key,
+                    _who_was_it($options->{caller_depth}),
+                    _who_was_it($options->{caller_depth} + 1)
+                ),
+                $options->{verbose}
+            );
             $fail++;
             next;
         }
 
-        ### next, set the default, make sure the key exists in %defs ###
-        $defs{$key} = $tmpl->{'default'}
-                        if exists $tmpl->{'default'};
+        $defs{$key} = $tmpl->{default} if exists $tmpl->{default};
 
         if( $options->{sanity_check_template} ) {
-            ### last, check if they provided any weird template keys
-            ### -- do this last so we don't always execute this code.
-            ### just a small optimization.
-            map {   _store_error(
-                        loc(q|Template type '%1' not supported [at key '%2']|,
-                        $_, $key), $options->{verbose}, 0 );
-            } grep {
-                not $known_keys{$_}
-            } keys %$tmpl;
-
-            ### make sure you passed a ref, otherwise, complain about it!
-            if (exists $tmpl->{store}) {
-                if (!ref $tmpl->{store}) {
-                    _store_error(loc(q|Store variable for '%1' is not a reference!|, $key));
-                    $fail++;
-                    next;
-                }
+            my @uk = grep { not $known_keys{$_} } keys %$tmpl;
+            if (@uk) {
+                map { _store_error(
+                            loc(q|Template type '%1' not supported [at key '%2']|,
+                            $_, $key), $options->{verbose}, 0 );
+                } @uk;
+                $fail++;
             }
         }
 
-        push @want_store, $key if $tmpl->{'store'};
     }
 
-    ### errors found ###
     if ($fail) {
         return if !$options->{fatal};
         croak(__PACKAGE__->last_error);
@@ -374,18 +374,19 @@ sub check {
     for my $key (keys %$args) {
         my $arg = $args->{$key};
 
-        ### you gave us this key, but it's not in the template ###
-        unless( $utmpl->{$key} ) {
-
-            ### but we'll allow it anyway ###
-            if( $options->{allow_unknown} ) {
+        if (!$utmpl->{$key}) {
+            if ($options->{allow_unknown}) {
                 $defs{$key} = $arg;
-
-            ### warn about the error ###
-            } else {
+            }
+            else {
                 _store_error(
-                    loc("Key '%1' is not a valid key for %2 provided by %3",
-                        $key, _who_was_it($options->{caller_depth}), _who_was_it(1)), $options->{verbose});
+                    loc(
+                        "Key '%1' is not a valid key for %2 provided by %3",
+                        $key,
+                        _who_was_it($options->{caller_depth}),
+                        _who_was_it($options->{caller_depth} + 1)
+                    ),
+                    $options->{verbose});
                 $warned ||= 1;
             }
             next;
@@ -399,7 +400,7 @@ sub check {
             _store_error(
                 loc(
                     q[You are not allowed to override key '%1' for %2 from %3],
-                    $key, _who_was_it($options->{caller_depth}), _who_was_it(1)
+                    $key, _who_was_it($options->{caller_depth}), _who_was_it($options->{caller_depth} + 1)
                 ),
                 $options->{verbose});
             $warned ||= 1;
@@ -433,17 +434,20 @@ sub check {
         ) {
             ### stringify the value in the error report -- we don't want dumps
             ### of objects, but we do want to see *roughly* what we passed
-            _store_error(loc(q|Key '%1' (%2) is of invalid type for '%3' |.
-                             q|provided by %4|,
-                            $key, "$arg", _who_was_it($options->{caller_depth}),
-                            _who_was_it(1)), $options->{verbose});
+            _store_error(
+                loc(
+                    q|Key '%1' (%2) is of invalid type for '%3' provided by %4|,
+                    $key, "$arg",
+                    _who_was_it($options->{caller_depth}),
+                    _who_was_it($options->{caller_depth} + 1)
+                ),
+                $options->{verbose});
             $wrong ||= 1;
             next;
         }
 
         ### we got here, then all must be OK ###
         $defs{$key} = $arg;
-
     }
 
     ### croak with the collected errors if there were errors and
@@ -562,7 +566,7 @@ sub _who_was_it {
         _warn_deprecated();
     }
 
-    return (caller(2 + $CALLER_DEPTH + $level))[3] || 'ANON'
+    return (caller(2 + $level))[3] || 'ANON'
 }
 
 =head2 last_error()

@@ -13,6 +13,9 @@ WriteMakefile1(
     dist            => { COMPRESS => 'gzip -9f', SUFFIX => 'gz' },
     PREREQ_PM       => {
                         'Test::More'                => 0,
+                        'Test::Compile'             => 0,
+                        'Test::Pod'                 => 0,
+                        'Test::Pod::Coverage'       => 0,
                         'Locale::Maketext::Simple'  => 0,
                     },
     INSTALLDIRS     => ( $] >= 5.009005 ? 'perl' : 'site' ),
