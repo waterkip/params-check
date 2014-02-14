@@ -185,7 +185,7 @@ control whether the C<store>'d key will still be present in your
 result set. See the L<Global Variables> section below.
 
 =item allow
-\n
+
 A set of criteria used to validate a particular piece of data if it
 has to adhere to particular rules.
 
@@ -258,18 +258,18 @@ sub check {
         my $ref = ref $verbose;
         if ($ref eq 'HASH') {
             $options = $verbose;
-            # New way of thinking: fatal is the default; 
+            # New way of thinking: fatal is the default;
             # catch me if you can
             $options->{fatal} = 1;
-            foreach ('preserve_case', 'sanity_check_template') { 
-                if (!exists $options->{$_}) { 
+            foreach ('preserve_case', 'sanity_check_template') {
+                if (!exists $options->{$_}) {
                     $options->{$_} = 1;
                 }
             }
-                
+
         }
         elsif (!$ref) {
-            if (defined $verbose) { 
+            if (defined $verbose) {
                 _warn_deprecated();
             }
             $options = {
@@ -558,7 +558,7 @@ sub _warn_deprecated {
 sub _who_was_it {
     my $level = shift || 0;
 
-    if ($CALLER_DEPTH) { 
+    if ($CALLER_DEPTH) {
         _warn_deprecated();
     }
 
