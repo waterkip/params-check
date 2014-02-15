@@ -140,7 +140,10 @@ subtest 'strict_type' => sub {
     my $args = check($tmpl, $try, {strict_type => 1});
     is_deeply($args, $try, "Correct return value");
 
-    $tmpl = {foo => {default => 1}};
+    $try  = {foo => undef};
+    $args = check($tmpl, $try, {strict_type => 1});
+    is_deeply($args, $try, "Correct return value");
+
     throws_ok(
         sub {
             check($tmpl, {foo => []}, {strict_type => 1});
@@ -149,14 +152,7 @@ subtest 'strict_type' => sub {
         "Not a strict type"
     );
 
-    $tmpl = {foo => {default => 1}};
-    throws_ok(
-        sub {
-            check($tmpl, {foo => undef}, {strict_type => 1});
-        },
-        qr/Key 'foo' needs to be of type 'SCALAR'/,
-        "Not a strict type: undef"
-    );
+
 };
 
 subtest 'caller_depth' => sub {

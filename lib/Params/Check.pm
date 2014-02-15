@@ -450,7 +450,7 @@ sub check {
 
         if ($tmpl{default} && ($tmpl{strict_type} || $options->{strict_type})) {
             my $ref = ref $tmpl{default};
-            if (!defined $arg || ref $arg ne $ref) {
+            if (ref $arg ne $ref) {
                 _store_error(
                     loc(
                         q|Key '%1' needs to be of type '%2'|,
