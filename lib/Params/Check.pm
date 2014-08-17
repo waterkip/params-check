@@ -328,7 +328,7 @@ sub check {
     my $args;
 
     ### don't even bother to loop, if there's nothing to clean up ###
-    if( $options->{preserve_case} and !$options->{strip_leading_dashes} ) {
+    if($options->{preserve_case} && !$options->{strip_leading_dashes}) {
         $args = $href;
     } else {
         ### keys are not aliased ###
