@@ -11,7 +11,7 @@ use Params::Check qw(check);
 
 my $tmpl = {foo => {default => 1}};
 
-subtest 'failure is an option' => sub { 
+subtest 'failure is an option' => sub {
     throws_ok(
         sub {
             check(undef, undef, undef);

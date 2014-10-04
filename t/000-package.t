@@ -9,7 +9,7 @@ subtest 'compile' => sub {
     all_pm_files_ok();
 };
 
-subtest 'pod' => sub { 
+subtest 'pod' => sub {
     all_pod_files_ok();
 };
 
