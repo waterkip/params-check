@@ -2,31 +2,31 @@ package Params::Check;
 use warnings;
 use strict;
 
-use Carp                        qw[carp croak];
-use Locale::Maketext::Simple    Style => 'gettext';
+use Carp qw[carp croak];
+use Locale::Maketext::Simple Style => 'gettext';
 
 BEGIN {
-    use Exporter    ();
-    use vars        qw[ @ISA $VERSION @EXPORT_OK $VERBOSE $ALLOW_UNKNOWN
-                        $STRICT_TYPE $STRIP_LEADING_DASHES $NO_DUPLICATES
-                        $PRESERVE_CASE $ONLY_ALLOW_DEFINED $WARNINGS_FATAL
-                        $SANITY_CHECK_TEMPLATE $CALLER_DEPTH $_ERROR_STRING
-                    ];
+    use Exporter ();
+    use vars qw[ @ISA $VERSION @EXPORT_OK $VERBOSE $ALLOW_UNKNOWN
+        $STRICT_TYPE $STRIP_LEADING_DASHES $NO_DUPLICATES
+        $PRESERVE_CASE $ONLY_ALLOW_DEFINED $WARNINGS_FATAL
+        $SANITY_CHECK_TEMPLATE $CALLER_DEPTH $_ERROR_STRING
+    ];
 
-    @ISA        =   qw[ Exporter ];
-    @EXPORT_OK  =   qw[check allow last_error];
+    @ISA       = qw[ Exporter ];
+    @EXPORT_OK = qw[check allow last_error];
 
-    $VERSION                = '0.38';
-    $VERBOSE                = $^W ? 1 : 0;
-    $NO_DUPLICATES          = 0;
-    $STRIP_LEADING_DASHES   = 0;
-    $STRICT_TYPE            = 0;
-    $ALLOW_UNKNOWN          = 0;
-    $PRESERVE_CASE          = 0;
-    $ONLY_ALLOW_DEFINED     = 0;
-    $SANITY_CHECK_TEMPLATE  = 1;
-    $WARNINGS_FATAL         = 0;
-    $CALLER_DEPTH           = 0;
+    $VERSION               = '0.38';
+    $VERBOSE               = $^W ? 1 : 0;
+    $NO_DUPLICATES         = 0;
+    $STRIP_LEADING_DASHES  = 0;
+    $STRICT_TYPE           = 0;
+    $ALLOW_UNKNOWN         = 0;
+    $PRESERVE_CASE         = 0;
+    $ONLY_ALLOW_DEFINED    = 0;
+    $SANITY_CHECK_TEMPLATE = 1;
+    $WARNINGS_FATAL        = 0;
+    $CALLER_DEPTH          = 0;
 }
 
 my %known_keys = (
@@ -48,7 +48,7 @@ sub check {
     _clear_error();
 
     if (ref $utmpl ne 'HASH' or ref $href ne 'HASH') {
-      croak(loc('check() expects two arguments'));
+        croak(loc('check() expects two arguments'));
     }
 
     my $options;
@@ -56,6 +56,7 @@ sub check {
         my $ref = ref $verbose;
         if ($ref eq 'HASH') {
             $options = $verbose;
+
             # New way of thinking: fatal is the default;
             # catch me if you can
             $options->{fatal} = 1;
@@ -90,9 +91,10 @@ sub check {
     }
 
     my $args;
-    if( $options->{preserve_case} and !$options->{strip_leading_dashes} ) {
+    if ($options->{preserve_case} and !$options->{strip_leading_dashes}) {
         $args = $href;
-    } else {
+    }
+    else {
         for my $key (keys %$href) {
             my $org = $key;
             $key = lc $key if !$options->{preserve_case};
@@ -118,7 +120,12 @@ sub check {
         my @uk = grep { not $known_keys{$_} } keys %$tmpl;
         if (@uk) {
             map {
-                _store_error(loc(q|Template type '%1' not supported [at key '%2']|, $_, $key));
+                _store_error(
+                    loc(
+                        q|Template type '%1' not supported [at key '%2']|,
+                        $_, $key
+                    )
+                );
             } @uk;
             $fail++;
             next;
@@ -126,7 +133,8 @@ sub check {
 
         if (exists $tmpl->{store}) {
             if (!ref $tmpl->{store}) {
-                _store_error(loc(q|Store variable for '%1' is not a reference!|, $key));
+                _store_error(
+                    loc(q|Store variable for '%1' is not a reference!|, $key));
                 $fail++;
                 next;
             }
@@ -136,6 +144,7 @@ sub check {
         if ($tmpl->{required}) {
             $required{$key} = 1;
         }
+
         #if ({$tmpl->{depends}) {
         #    $required{$key};
         #}
@@ -172,31 +181,37 @@ sub check {
                         _who_was_it($options->{caller_depth}),
                         _who_was_it($options->{caller_depth} + 1)
                     ),
-                    $options->{verbose});
+                    $options->{verbose}
+                );
                 $warned ||= 1;
             }
             next;
         }
 
         ### copy of this keys template instructions, to save derefs ###
-        my %tmpl = %{$utmpl->{$key}};
+        my %tmpl = %{ $utmpl->{$key} };
 
         ### check if you're even allowed to override this key ###
-        if( $tmpl{no_override} ) {
+        if ($tmpl{no_override}) {
             _store_error(
                 loc(
                     q[You are not allowed to override key '%1' for %2 from %3],
-                    $key, _who_was_it($options->{caller_depth}), _who_was_it($options->{caller_depth} + 1)
+                    $key,
+                    _who_was_it($options->{caller_depth}),
+                    _who_was_it($options->{caller_depth} + 1)
                 ),
-                $options->{verbose});
+                $options->{verbose}
+            );
             $warned ||= 1;
             next;
         }
 
         ### check if you were supposed to provide defined() values ###
-        if( ($tmpl{defined} || $options->{only_allow_defined}) and not defined $arg ) {
+        if (($tmpl{defined} || $options->{only_allow_defined})
+            and not defined $arg)
+        {
             _store_error(loc(q|Key '%1' must be defined when passed|, $key),
-                $options->{verbose} );
+                $options->{verbose});
             $wrong ||= 1;
             next;
         }
@@ -204,7 +219,7 @@ sub check {
         # Conflicts
         # Delete the conflicting keys from the hash.
         if ($tmpl{conflicts} && defined $arg) {
-            foreach (@{$tmpl{conflicts}}) {
+            foreach (@{ $tmpl{conflicts} }) {
                 delete $required{$_};
                 delete $conflicts{$_};
             }
@@ -218,7 +233,8 @@ sub check {
                         q|Key '%1' needs to be of type '%2'|,
                         $key, $ref || 'SCALAR'
                     ),
-                    $options->{verbose});
+                    $options->{verbose}
+                );
                 $wrong ||= 1;
                 next;
             }
@@ -226,19 +242,23 @@ sub check {
 
         ### check if we have an allow handler, to validate against ###
         ### allow() will report its own errors ###
-        if(exists $tmpl{allow} and not do {
+        if (
+            exists $tmpl{allow} and not do {
                 local $_ERROR_STRING;
-                allow($arg, $tmpl{allow})
+                allow($arg, $tmpl{allow});
             }
-        ) {
+            )
+        {
             _store_error(
                 loc(
                     q|Key '%1' (%2) is of invalid type for '%3' provided by %4|,
-                    $key, "$arg",
+                    $key,
+                    "$arg",
                     _who_was_it($options->{caller_depth}),
                     _who_was_it($options->{caller_depth} + 1)
                 ),
-                $options->{verbose});
+                $options->{verbose}
+            );
             $wrong ||= 1;
             next;
         }
@@ -255,11 +275,14 @@ sub check {
     my @missing = grep { !exists $defs{$_} } keys %required;
     if (@missing) {
         map {
-            _store_error(loc(
-            q|Required option '%1' is not provided for %2 by %3|,
-            $_,
-            _who_was_it($options->{caller_depth}),
-            _who_was_it($options->{caller_depth} + 1)))
+            _store_error(
+                loc(
+                    q|Required option '%1' is not provided for %2 by %3|,
+                    $_,
+                    _who_was_it($options->{caller_depth}),
+                    _who_was_it($options->{caller_depth} + 1)
+                )
+                )
         } @missing;
         croak(__PACKAGE__->last_error) if $options->{fatal};
         return undef;
@@ -320,29 +343,32 @@ sub allow {
     #my ($val, $ref) = @_;
 
     ### it's a regexp ###
-    if( ref $_[1] eq 'Regexp' ) {
-        local $^W;  # silence warnings if $val is undef #
+    if (ref $_[1] eq 'Regexp') {
+        local $^W;    # silence warnings if $val is undef #
         return if $_[0] !~ /$_[1]/;
 
-    ### it's a sub ###
-    } elsif ( ref $_[1] eq 'CODE' ) {
-        return unless $_[1]->( $_[0] );
+        ### it's a sub ###
+    }
+    elsif (ref $_[1] eq 'CODE') {
+        return unless $_[1]->($_[0]);
 
-    ### it's an array ###
-    } elsif ( ref $_[1] eq 'ARRAY' ) {
+        ### it's an array ###
+    }
+    elsif (ref $_[1] eq 'ARRAY') {
 
         ### loop over the elements, see if one of them says the
         ### value is OK
         ### also, short-circuit when possible
-        for ( @{$_[1]} ) {
-            return 1 if allow( $_[0], $_ );
+        for (@{ $_[1] }) {
+            return 1 if allow($_[0], $_);
         }
 
         return;
 
-    ### fall back to a simple, but safe 'eq' ###
-    } else {
-        return unless _safe_eq( $_[0], $_[1] );
+        ### fall back to a simple, but safe 'eq' ###
+    }
+    else {
+        return unless _safe_eq($_[0], $_[1]);
     }
 
     ### we got here, no failures ###
@@ -354,12 +380,13 @@ sub allow {
 sub _safe_eq {
     ### only do a straight 'eq' if they're both defined ###
     return defined($_[0]) && defined($_[1])
-                ? $_[0] eq $_[1]
-                : defined($_[0]) eq defined($_[1]);
+        ? $_[0] eq $_[1]
+        : defined($_[0]) eq defined($_[1]);
 }
 
 sub _warn_deprecated {
-    warn __PACKAGE__ . ": Deprecated use of global variables, future releases will use a different interface\n";
+    warn __PACKAGE__
+        . ": Deprecated use of global variables, future releases will use a different interface\n";
 }
 
 sub _who_was_it {
@@ -369,7 +396,7 @@ sub _who_was_it {
         _warn_deprecated();
     }
 
-    return (caller(2 + $level))[3] || 'ANON'
+    return (caller(2 + $level))[3] || 'ANON';
 }
 
 =head2 last_error()
@@ -384,13 +411,14 @@ It is exported upon request.
 
 =cut
 
-{   $_ERROR_STRING = '';
+{
+    $_ERROR_STRING = '';
 
     sub _store_error {
-        my($err, $verbose, $offset) = @_;
+        my ($err, $verbose, $offset) = @_;
         $verbose ||= 0;
         $offset  ||= 0;
-        my $level   = 1 + $offset;
+        my $level = 1 + $offset;
 
         local $Carp::CarpLevel = $level;
 
