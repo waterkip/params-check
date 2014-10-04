@@ -3,6 +3,8 @@ lib/Params/Check.pm
 MANIFEST			This list of files
 MANIFEST.SKIP
 README
+t/000-package.t
 t/01_Params-Check.t
 t/100-allow.t
 t/200-check-options.t
+t/300-check-template.t

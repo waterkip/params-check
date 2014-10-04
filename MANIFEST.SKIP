@@ -4,3 +4,4 @@ Makefile.*
 MANIFEST.bak
 MYMETA.yml
 blib
+cover_db
