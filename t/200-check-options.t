@@ -179,6 +179,10 @@ subtest 'caller_depth' => sub {
     );
 };
 
+subtest 'non_fatal' => sub {
+    ok(check({ foo => { required => 1, default => 42 }}, { }, { fatal => 0 }), "non-fatal runs");
+};
+
 # This is on by default, checks store refs and unknown keys in the template
 subtest 'sanity_check_template' => sub {
     ok("Always on");
