@@ -69,9 +69,7 @@ sub check {
 
         }
         elsif (!$ref) {
-            if (defined $verbose) {
-                _warn_deprecated();
-            }
+            _warn_deprecated();
             $options = {
                 no_duplicates         => $NO_DUPLICATES,
                 strip_leading_dashes  => $STRIP_LEADING_DASHES,
