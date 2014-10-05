@@ -145,9 +145,12 @@ sub check {
             $required{$key} = 1;
         }
 
-        #if ({$tmpl->{depends}) {
-        #    $required{$key};
-        #}
+        if ($tmpl->{depends}) {
+            foreach (@{$tmpl->{depends}}) {
+                next if $_ eq $key;
+                $required{$_} = 1;
+            }
+        }
         #if ($tmpl->{conflicts}) {
         #    $conflicts{$key} = $tmpl->{conflicts};
         #}
