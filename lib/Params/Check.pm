@@ -47,7 +47,7 @@ sub check {
 
     _clear_error();
 
-    if (ref $utmpl ne 'HASH' or ref $href ne 'HASH') {
+    if (ref $utmpl ne 'HASH' || ref $href ne 'HASH') {
         croak(loc('check() expects two arguments'));
     }
 
@@ -89,7 +89,7 @@ sub check {
     }
 
     my $args;
-    if ($options->{preserve_case} and !$options->{strip_leading_dashes}) {
+    if ($options->{preserve_case} && !$options->{strip_leading_dashes}) {
         $args = $href;
     }
     else {
