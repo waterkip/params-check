@@ -149,9 +149,10 @@ sub check {
                 $required{$_} = 1;
             }
         }
-        #if ($tmpl->{conflicts}) {
-        #    $conflicts{$key} = $tmpl->{conflicts};
-        #}
+
+        if ($tmpl->{conflicts}) {
+            $conflicts{$key} = [ grep { $_ ne $key } @{$tmpl->{conflicts}}];
+        }
 
         $defs{$key} = $tmpl->{default} if exists $tmpl->{default};
     }
@@ -161,10 +162,7 @@ sub check {
         croak(__PACKAGE__->last_error);
     }
 
-    ### flag to see if anything went wrong ###
     my $wrong;
-
-    ### flag to see if we warned for anything, needed for warnings_fatal
     my $warned;
 
     for my $key (keys %$args) {
@@ -189,10 +187,10 @@ sub check {
             next;
         }
 
-        ### copy of this keys template instructions, to save derefs ###
+        # Copy of this keys template instructions, to save derefs
         my %tmpl = %{ $utmpl->{$key} };
 
-        ### check if you're even allowed to override this key ###
+        # Check if you're even allowed to override this key
         if ($tmpl{no_override}) {
             _store_error(
                 loc(
@@ -207,7 +205,6 @@ sub check {
             next;
         }
 
-        ### check if you were supposed to provide defined() values ###
         if (($tmpl{defined} || $options->{only_allow_defined})
             and not defined $arg)
         {
@@ -217,13 +214,9 @@ sub check {
             next;
         }
 
-        # Conflicts
-        # Delete the conflicting keys from the hash.
-        if ($tmpl{conflicts} && defined $arg) {
-            foreach (@{ $tmpl{conflicts} }) {
-                delete $required{$_};
-                delete $conflicts{$_};
-            }
+        if (exists $conflicts{$key}) {
+            # This way we can have mutually exclusive required arguments
+            delete $required{$_} for @{$conflicts{$key}};
         }
 
         if ($tmpl{default} && ($tmpl{strict_type} || $options->{strict_type})) {
@@ -288,6 +281,26 @@ sub check {
         croak(__PACKAGE__->last_error) if $options->{fatal};
         return undef;
     }
+
+    foreach my $key (sort keys %defs) {
+        if(exists $conflicts{$key}) {
+            my @conflicts = grep { exists $defs{$_} } @{$conflicts{$key}};
+            if (@conflicts) {
+                map {
+                    _store_error(
+                        loc(
+                            q|Conflicting option '%1' found %2 by %3|,
+                            $_,
+                            _who_was_it($options->{caller_depth}),
+                            _who_was_it($options->{caller_depth} + 1)
+                        )
+                        )
+                } @conflicts;
+                croak(__PACKAGE__->last_error) if $options->{fatal};
+            }
+        }
+    }
+
 
     for my $key (@want_store) {
         next unless exists $defs{$key};
