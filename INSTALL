@@ -1,0 +1,11 @@
+Please refer to 'perldoc Params::Check' after installation for details.
+#####################################################################
+
+Params::Check follows the standard perl module install process
+
+perl Makefile.PL
+make
+make test
+make install
+
+The module uses no C or XS parts, so no c-compiler is required.

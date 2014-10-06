@@ -809,7 +809,7 @@ Please report bugs or other issues to E<lt>bug-params-check@rt.cpan.orgE<gt>.
 
 =head1 AUTHOR
 
-This module by Jos Boumans E<lt>kane@cpan.orgE<gt>.
+This module by Jos Boumans E<lt>kane@cpan.orgE<gt>.E<10>
 Adapted by Wesley Schwengle E<lt>waterkip@cpan.orgE<gt>.
 
 =head1 COPYRIGHT
