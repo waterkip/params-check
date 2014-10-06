@@ -310,48 +310,6 @@ sub check {
     return \%defs;
 }
 
-=head2 allow( $test_me, \@criteria );
-
-The function that handles the C<allow> key in the template is also
-available for independent use.
-
-The function takes as first argument a key to test against, and
-as second argument any form of criteria that are also allowed by
-the C<allow> key in the template.
-
-You can use the following types of values for allow:
-
-=over 4
-
-=item string
-
-The provided argument MUST be equal to the string for the validation
-to pass.
-
-=item regexp
-
-The provided argument MUST match the regular expression for the
-validation to pass.
-
-=item subroutine
-
-The provided subroutine MUST return true in order for the validation
-to pass and the argument accepted.
-
-(This is particularly useful for more complicated data).
-
-=item array ref
-
-The provided argument MUST equal one of the elements of the array
-ref for the validation to pass. An array ref can hold all the above
-values.
-
-=back
-
-It returns true if the key matched the criteria, or false otherwise.
-
-=cut
-
 sub allow {
     ### use $_[0] and $_[1] since this is hot code... ###
     #my ($val, $ref) = @_;
@@ -412,18 +370,6 @@ sub _who_was_it {
 
     return (caller(2 + $level))[3] || 'ANON';
 }
-
-=head2 last_error()
-
-Returns a string containing all warnings and errors reported during
-the last time C<check> was called.
-
-This is useful if you want to report then some other way than
-C<carp>'ing when the verbose flag is on.
-
-It is exported upon request.
-
-=cut
 
 {
     $_ERROR_STRING = '';
@@ -614,6 +560,49 @@ See the C<allow()> function for details.
 
 =head1 Functions
 
+=head2 allow( $test_me, \@criteria );
+
+The function that handles the C<allow> key in the template is also
+available for independent use.
+
+The function takes as first argument a key to test against, and
+as second argument any form of criteria that are also allowed by
+the C<allow> key in the template.
+
+You can use the following types of values for allow:
+
+=over 4
+
+=item string
+
+The provided argument MUST be equal to the string for the validation
+to pass.
+
+=item regexp
+
+The provided argument MUST match the regular expression for the
+validation to pass.
+
+=item subroutine
+
+The provided subroutine MUST return true in order for the validation
+to pass and the argument accepted.
+
+(This is particularly useful for more complicated data).
+
+=item array ref
+
+The provided argument MUST equal one of the elements of the array
+ref for the validation to pass. An array ref can hold all the above
+values.
+
+=back
+
+It returns true if the key matched the criteria, or false otherwise.
+
+=cut
+
+
 =head2 check(@args);
 
 # Old style
@@ -690,6 +679,18 @@ C<check> will die when it fails, or a hashref with keys of parsed arguments when
 So a typical call to check would look like this:
 
     my $parsed = check( \%template, \%arguments, \%options);
+
+=head2 last_error()
+
+Returns a string containing all warnings and errors reported during
+the last time C<check> was called.
+
+This is useful if you want to report then some other way than
+C<carp>'ing when the verbose flag is on.
+
+It is exported upon request.
+
+=cut
 
 =head1 Global Variables
 
@@ -815,6 +816,8 @@ Adapted by Wesley Schwengle E<lt>waterkip@cpan.orgE<gt>.
 
 This library is free software; you may redistribute and/or modify it
 under the same terms as Perl itself.
+
+=cut
 
 # Local variables:
 # c-indentation-style: bsd
